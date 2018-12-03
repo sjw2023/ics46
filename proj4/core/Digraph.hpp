@@ -212,6 +212,9 @@ private:
     // You can also feel free to add any additional member functions
     // you'd like (public or private), so long as you don't remove or
     // change the signatures of the ones that already exist.
+    bool checkConnectivity(int from,std::vector<int> visited) const;
+    inline int findMinimum(const std::vector<int>& vertices, const std::map<int, double> &shortDistances) const;
+
 };
 
 
@@ -229,24 +232,32 @@ Digraph<VertexInfo, EdgeInfo>::Digraph()
 template <typename VertexInfo, typename EdgeInfo>
 Digraph<VertexInfo, EdgeInfo>::Digraph(const Digraph& d)
 {
+    this->info = d.info;
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 Digraph<VertexInfo, EdgeInfo>::Digraph(Digraph&& d) noexcept
 {
+    this->info.swap(d.info);
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 Digraph<VertexInfo, EdgeInfo>::~Digraph() noexcept
 {
+    for(typename std::map<int,DigraphVertex<VertexInfo,EdgeInfo>>::iterator iter=info.begin();iter!=info.end();iter++)
+    {
+        iter->second.edges.clear();
+    }
+    info.clear();
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 Digraph<VertexInfo, EdgeInfo>& Digraph<VertexInfo, EdgeInfo>::operator=(const Digraph& d)
 {
+    this->info = d.info;
     return *this;
 }
 
@@ -254,6 +265,7 @@ Digraph<VertexInfo, EdgeInfo>& Digraph<VertexInfo, EdgeInfo>::operator=(const Di
 template <typename VertexInfo, typename EdgeInfo>
 Digraph<VertexInfo, EdgeInfo>& Digraph<VertexInfo, EdgeInfo>::operator=(Digraph&& d) noexcept
 {
+    this->info.swap(d.info);
     return *this;
 }
 
@@ -261,87 +273,208 @@ Digraph<VertexInfo, EdgeInfo>& Digraph<VertexInfo, EdgeInfo>::operator=(Digraph&
 template <typename VertexInfo, typename EdgeInfo>
 std::vector<int> Digraph<VertexInfo, EdgeInfo>::vertices() const
 {
-    return std::vector<int>{};
+    std::vector<int> result;
+    for(typename std::map<int,DigraphVertex<VertexInfo,EdgeInfo>>::const_iterator it=info.begin();it!=info.end();it++)
+        result.push_back(it->first);
+    return result;
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 std::vector<std::pair<int, int>> Digraph<VertexInfo, EdgeInfo>::edges() const
 {
-    return std::vector<std::pair<int, int>>{};
+    std::vector<std::pair<int,int>> result;
+    for(typename std::map<int,DigraphVertex<VertexInfo,EdgeInfo>>::const_iterator iter=info.begin();iter!=info.end();iter++)
+    {
+        for(typename std::list<DigraphEdge<EdgeInfo>>::const_iterator it = iter->second.edges.begin();it!=iter->second.edges.end();it++)
+            result.push_back(std::make_pair(it->fromVertex,it->toVertex));
+    }
+    return result;
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 std::vector<std::pair<int, int>> Digraph<VertexInfo, EdgeInfo>::edges(int vertex) const
 {
-    return std::vector<std::pair<int, int>>{};
+    if(info.count(vertex)==0)
+    {
+        throw DigraphException("Invalid vertex");
+    }
+    else
+    {
+        std::vector<std::pair<int,int>> result;
+        for(typename std::list<DigraphEdge<EdgeInfo>>::const_iterator it=info.find(vertex)->second.edges.begin();it!=info.find(vertex)->second.edges.end();it++)
+            result.push_back(std::make_pair(vertex,it->toVertex));
+        return result;
+    }
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 VertexInfo Digraph<VertexInfo, EdgeInfo>::vertexInfo(int vertex) const
 {
-    return VertexInfo{};
+    if(info.count(vertex)==0)
+        throw DigraphException("Invalid vertex");
+    else
+        return info.at(vertex).vinfo;
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 EdgeInfo Digraph<VertexInfo, EdgeInfo>::edgeInfo(int fromVertex, int toVertex) const
 {
-    return EdgeInfo{};
+    if(info.count(fromVertex)==0 || info.count(toVertex)==0)
+        throw DigraphException("Invalid edge");
+    else
+    {
+        std::vector<std::pair<int,int>> temp = edges(fromVertex);
+        std::pair<int,int> check = std::make_pair(fromVertex,toVertex);
+        if(std::find(temp.begin(),temp.end(),check)==temp.end())
+            throw DigraphException("Invalid edge");
+    }
+    for(typename std::list<DigraphEdge<EdgeInfo>>::const_iterator it=info.at(fromVertex).edges.begin();it!=info.at(fromVertex).edges.end();it++)
+    {
+        if(it->toVertex==toVertex)
+            return it->einfo;
+    }
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 void Digraph<VertexInfo, EdgeInfo>::addVertex(int vertex, const VertexInfo& vinfo)
 {
+    if(info.count(vertex)!=0)
+        throw DigraphException("Vertex already exists");
+    DigraphVertex<VertexInfo,EdgeInfo> v = DigraphVertex<VertexInfo,EdgeInfo>{vinfo};
+    info.insert(std::pair<int,DigraphVertex<VertexInfo,EdgeInfo>>(vertex,v));
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 void Digraph<VertexInfo, EdgeInfo>::addEdge(int fromVertex, int toVertex, const EdgeInfo& einfo)
 {
+    if(info.count(fromVertex)==0 || info.count(toVertex)==0)
+        throw DigraphException("Invalid edge");
+    else
+    {
+        std::vector<std::pair<int,int>> temp = edges(fromVertex);
+        std::pair<int,int> check = std::make_pair(fromVertex,toVertex);
+        if(std::find(temp.begin(),temp.end(),check)!=temp.end())
+            throw DigraphException("Invalid edge");
+    }
+    info.at(fromVertex).edges.push_back(DigraphEdge<EdgeInfo>{fromVertex,toVertex,einfo});
+
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 void Digraph<VertexInfo, EdgeInfo>::removeVertex(int vertex)
 {
+    if(info.count(vertex)==0)
+        throw DigraphException("Invalid vertex");
+    info.erase(vertex);
+    for(typename std::map<int,DigraphVertex<VertexInfo,EdgeInfo>>::iterator iter=info.begin();iter!=info.end();iter++)
+    {
+        typename std::list<DigraphEdge<EdgeInfo>>::iterator it= iter->second.edges.begin();
+        while(it!=iter->second.edges.end())
+        {
+            if(it->toVertex == vertex)
+                iter->second.edges.erase(it);
+            it++;
+        }
+    }
+    info.erase(vertex);
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 void Digraph<VertexInfo, EdgeInfo>::removeEdge(int fromVertex, int toVertex)
 {
+    if(info.count(fromVertex)==0 || info.count(toVertex)==0)
+        throw DigraphException("Invalid edge");
+    else
+    {
+        std::vector<std::pair<int,int>> temp = edges(fromVertex);
+        std::pair<int,int> check = std::make_pair(fromVertex,toVertex);
+        if(std::find(temp.begin(),temp.end(),check)==temp.end())
+            throw DigraphException("Invalid edge");
+    }
+    typename std::list<DigraphEdge<EdgeInfo>>::iterator it=info.at(fromVertex).edges.begin();
+    while(it!=info.at(fromVertex).edges.end())
+    {
+        if(it->toVertex == toVertex)
+             info.at(fromVertex).edges.erase(it);
+           it++;
+    }
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 int Digraph<VertexInfo, EdgeInfo>::vertexCount() const noexcept
 {
-    return 0;
+    return info.size();
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 int Digraph<VertexInfo, EdgeInfo>::edgeCount() const noexcept
 {
-    return 0;
+    int total;
+    for(typename std::map<int,DigraphVertex<VertexInfo,EdgeInfo>>::const_iterator iter=info.begin();iter!=info.end();iter++)
+        total += iter->second.edges.size();
+    return total;
 }
 
 
 template <typename VertexInfo, typename EdgeInfo>
 int Digraph<VertexInfo, EdgeInfo>::edgeCount(int vertex) const
 {
-    return 0;
+    if(info.count(vertex)==0)
+        throw DigraphException("Invalid vertex");
+    return info.at(vertex).edges.size();
 }
-
+template <typename VertexInfo, typename EdgeInfo>
+bool Digraph<VertexInfo,EdgeInfo>::checkConnectivity(int from,std::vector<int> visited) const
+{
+    std::vector<int> vertice = vertices();
+    for(typename std::list<DigraphEdge<EdgeInfo>>::const_iterator it = info.at(from).edges.begin();it!=info.at(from).edges.end();it++)
+    {
+        if(std::find(visited.begin(),visited.end(),it->toVertex)==visited.end())
+            visited.push_back(it->toVertex);
+        else if(visited.size() < vertice.size()-1)
+            checkConnectivity(it->toVertex,visited);
+        else
+            return true;
+    }
+    return false;
+}
 
 template <typename VertexInfo, typename EdgeInfo>
 bool Digraph<VertexInfo, EdgeInfo>::isStronglyConnected() const
 {
-    return false;
+    for(typename std::map<int,DigraphVertex<VertexInfo,EdgeInfo>>::const_iterator iter=info.begin();iter!=info.end();iter++)
+    {
+        std::vector<int> visited;
+        if(!checkConnectivity(iter->first,visited))
+            return false;
+    }
+    return true;
+}
+template <typename VertexInfo, typename EdgeInfo>
+inline int Digraph<VertexInfo,EdgeInfo>::findMinimum(const std::vector<int>& vertices, const std::map<int, double> &shortestDist) const
+{
+    double minVal = 8000000000000;
+    int minVert;
+
+    for(int i=0;i<vertices.size();i++)
+    {
+        if(shortestDist.at(vertices[i]) < minVal)
+        {
+           minVal = shortestDist.at(vertices[i]);
+           minVert = vertices[i];
+        }
+    }
+    return minVert;
 }
 
 
@@ -350,10 +483,47 @@ std::map<int, int> Digraph<VertexInfo, EdgeInfo>::findShortestPaths(
     int startVertex,
     std::function<double(const EdgeInfo&)> edgeWeightFunc) const
 {
-    return std::map<int, int>{};
+    std::map<int, double> shortestDist;
+    std::vector<int> unvisited;
+    std::map<int, int> shortestPath;
+
+    for(typename std::map<int,DigraphVertex<VertexInfo,EdgeInfo>>::const_iterator iter=info.begin();iter!=info.end();iter++)
+    {
+        unvisited.push_back(iter->first);
+        shortestDist[iter->first] = 80000000000000;
+    }
+
+    shortestDist[startVertex] = 0;
+    shortestPath[startVertex] = startVertex;
+
+
+    while(!unvisited.empty())
+    {
+        int current = findMinimum(unvisited, shortestDist);
+        for (int i=0;i<unvisited.size();i++)
+        {
+            if (unvisited[i] == current)
+            {
+                unvisited.erase(unvisited.begin()+i);
+                break;
+            }
+        }
+
+        for(typename std::list<DigraphEdge<EdgeInfo>>::const_iterator it=info.at(current).edges.begin();it!=info.at(current).edges.end();it++)
+        {
+            double distance = shortestDist[current] + edgeWeightFunc(it->einfo);
+            if(distance < shortestDist[it->toVertex])
+            {
+                shortestDist[it->toVertex]= distance;
+                shortestPath[it->toVertex] = current;
+            }
+        }
+    }
+
+    return shortestPath;
+
 }
 
 
 
 #endif // DIGRAPH_HPP
-
