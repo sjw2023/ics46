@@ -26,6 +26,9 @@
 #include <map>
 #include <utility>
 #include <vector>
+#include <iterator>
+#include <string>
+#include <iostream>
 
 
 
