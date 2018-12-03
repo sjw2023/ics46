@@ -212,6 +212,7 @@ private:
     // You can also feel free to add any additional member functions
     // you'd like (public or private), so long as you don't remove or
     // change the signatures of the ones that already exist.
+    std::map<int,DigraphVertex<VertexInfo,EdgeInfo>> info;
     bool checkConnectivity(int from,std::vector<int> visited) const;
     inline int findMinimum(const std::vector<int>& vertices, const std::map<int, double> &shortDistances) const;
 
