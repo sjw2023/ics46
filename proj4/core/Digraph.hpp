@@ -341,6 +341,7 @@ EdgeInfo Digraph<VertexInfo, EdgeInfo>::edgeInfo(int fromVertex, int toVertex) c
         if(it->toVertex==toVertex)
             return it->einfo;
     }
+    throw DigraphException("edge is not in container");
 }
 
 
@@ -423,7 +424,7 @@ int Digraph<VertexInfo, EdgeInfo>::vertexCount() const noexcept
 template <typename VertexInfo, typename EdgeInfo>
 int Digraph<VertexInfo, EdgeInfo>::edgeCount() const noexcept
 {
-    int total;
+    int total = 0;
     for(typename std::map<int,DigraphVertex<VertexInfo,EdgeInfo>>::const_iterator iter=info.begin();iter!=info.end();iter++)
         total += iter->second.edges.size();
     return total;
