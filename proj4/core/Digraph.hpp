@@ -448,9 +448,9 @@ bool Digraph<VertexInfo,EdgeInfo>::checkConnectivity(int from,std::vector<int> v
         std::cout << "checkConnectivity : "<< it->toVertex << std::endl;
         if(std::find(visited.begin(),visited.end(),it->toVertex)==visited.end())
             visited.push_back(it->toVertex);
-        else if(visited.size() < vertice.size()-1)
-            checkConnectivity(it->toVertex,visited);
-        else
+        // else if(visited.size() < vertice.size()-1)
+        //     checkConnectivity(it->toVertex,visited);
+        if( visited.size() == vertice.size() )
             return true;
     }
     return false;
@@ -465,7 +465,6 @@ bool Digraph<VertexInfo, EdgeInfo>::isStronglyConnected() const
         std::cout << "isStronglyConnected : " << iter->first << std::endl;
         if(!checkConnectivity(iter->first,visited))
         {
-
             return false;
         }
     }
