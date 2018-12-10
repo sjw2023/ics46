@@ -352,7 +352,7 @@ void Digraph<VertexInfo, EdgeInfo>::addVertex(int vertex, const VertexInfo& vinf
         throw DigraphException("Vertex already exists");
     DigraphVertex<VertexInfo,EdgeInfo> v = DigraphVertex<VertexInfo,EdgeInfo>{vinfo};
     info.insert(std::pair<int,DigraphVertex<VertexInfo,EdgeInfo>>(vertex,v));
-    std::cout << "addVertex : " << v << std::endl;
+    std::cout << "addVertex : " << vertex << std::endl;
 }
 
 
