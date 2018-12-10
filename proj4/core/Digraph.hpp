@@ -352,7 +352,6 @@ void Digraph<VertexInfo, EdgeInfo>::addVertex(int vertex, const VertexInfo& vinf
         throw DigraphException("Vertex already exists");
     DigraphVertex<VertexInfo,EdgeInfo> v = DigraphVertex<VertexInfo,EdgeInfo>{vinfo};
     info.insert(std::pair<int,DigraphVertex<VertexInfo,EdgeInfo>>(vertex,v));
-    std::cout << "addVertex : " << vertex << std::endl;
 }
 
 
@@ -445,11 +444,8 @@ bool Digraph<VertexInfo,EdgeInfo>::checkConnectivity(int from,std::vector<int> v
     std::vector<int> vertice = vertices();
     for(typename std::list<DigraphEdge<EdgeInfo>>::const_iterator it = info.at(from).edges.begin();it!=info.at(from).edges.end();it++)
     {
-        std::cout << "checkConnectivity : "<< it->toVertex << std::endl;
         if(std::find(visited.begin(),visited.end(),it->toVertex)==visited.end())
             visited.push_back(it->toVertex);
-        // else if(visited.size() < vertice.size()-1)
-        //     checkConnectivity(it->toVertex,visited);
         if( visited.size() == vertice.size() )
             return true;
     }
@@ -462,11 +458,8 @@ bool Digraph<VertexInfo, EdgeInfo>::isStronglyConnected() const
     for(typename std::map<int,DigraphVertex<VertexInfo,EdgeInfo>>::const_iterator iter=info.begin();iter!=info.end();iter++)
     {
         std::vector<int> visited;
-        std::cout << "isStronglyConnected : " << iter->first << std::endl;
         if(!checkConnectivity(iter->first,visited))
-        {
             return false;
-        }
     }
     return true;
 }
