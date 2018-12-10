@@ -460,7 +460,7 @@ bool Digraph<VertexInfo, EdgeInfo>::isStronglyConnected() const
     for(typename std::map<int,DigraphVertex<VertexInfo,EdgeInfo>>::const_iterator iter=info.begin();iter!=info.end();iter++)
     {
         std::vector<int> visited;
-        if(!checkConnectivity(iter->first,visited))
+        if(!checkConnectivity(iter->second,visited))
             return false;
     }
     return true;
